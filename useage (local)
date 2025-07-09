@@ -4,12 +4,3 @@ export DATABASE_URL='sqlite:///results.db'
 export SECRET_KEY='your-secret-key'
 export METRICS_TOKEN='your-metrics-token'
 mpiexec -n 4 python main.py
-
-Access: http://localhost:5000/dashboard
-
-Deploy to Heroku:
-heroku create hybrid-field-mapper
-chmod +x deploy.sh
-./deploy.sh
-
-Access: https://hybrid-field-mapper.herokuapp.com/dashboard
