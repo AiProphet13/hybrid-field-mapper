@@ -1,0 +1,6 @@
+export IBMQ_TOKEN='your-ibmq-token'
+export SLACK_TOKEN='your-slack-token'
+export DATABASE_URL='sqlite:///results.db'
+export SECRET_KEY='your-secret-key'
+export METRICS_TOKEN='your-metrics-token'
+mpiexec -n 4 python main.py
