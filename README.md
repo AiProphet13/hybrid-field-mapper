@@ -14,4 +14,62 @@ A quantum-electromagnetic AI propagation system for conductive networks, built b
 ```bash
 git clone https://github.com/AiProphet13/hybrid-field-mapper.git
 cd hybrid-field-mapper
-pip install .
+pip install.
+
+## Usage
+Run locally:
+export IBMQ_TOKEN='your-ibmq-token'
+export SLACK_TOKEN='your-slack-token'
+export DATABASE_URL='sqlite:///results.db'
+export SECRET_KEY='your-secret-key'
+export METRICS_TOKEN='your-metrics-token'
+mpiexec -n 4 python main.py
+
+Access: http://localhost:5000/dashboard
+
+Deploy to Heroku:
+heroku create hybrid-field-mapper
+chmod +x deploy.sh
+./deploy.sh
+
+Access: https://hybrid-field-mapper.herokuapp.com/dashboard
+
+Requirements
+    Python 3.9+
+    Dependencies: See requirements.txt
+    IBM Quantum account
+    MPI, PostgreSQL, Redis, Slack webhook
+
+License
+MIT License - free to use, modify, and distribute.
+
+Contributing
+Fork, create a feature branch,
+and submit a pull request.
+Join the quantum revolution!
+
+Citation
+@misc{hybrid_field_mapper,
+  author = {AiProphet13},
+  title = {HybridFieldMapper: Quantum-Electromagnetic AI Propagation},
+  year = {2025},
+  publisher = {GitHub},
+  howpublished = {\url{https://github.com/AiProphet13/hybrid-field-mapper}}
+}
+
+Contact
+X: @AiProphet13 | Issues: GitHub | fix it yourself.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
