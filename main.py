@@ -17,12 +17,14 @@ from sqlalchemy import and_
 import json
 import hashlib
 import networkx as nx
+import numpy as np
 from prometheus_client import generate_latest
 import diskcache
 from dash.long_callback import DiskcacheLongCallbackManager
 from src.hybrid_field_mapper import ProductionReadyHybridFieldMapper
 from src.statistical_analyzer import AdvancedStatisticalAnalyzer
 from src.alerting import PerformanceAlerter
+from src.topology_tester import create_complex_topologies, run_complex_topology_tests
 
 server = Flask(__name__)
 server.config.update(
@@ -213,27 +215,12 @@ def run_test(n_clicks, topology_type, field_size, backend):
         raise exceptions.PreventUpdate("Permission denied")
     
     # Generate test wires based on topology
-    if topology_type == 'star':
-        wires = [
-            {'position': [field_size/2, field_size/2], 'length': 0.5},
-            {'position': [field_size/4, field_size/4], 'length': 0.3},
-            {'position': [3*field_size/4, field_size/4], 'length': 0.3},
-            {'position': [field_size/4, 3*field_size/4], 'length': 0.3},
-            {'position': [3*field_size/4, 3*field_size/4], 'length': 0.3}
-        ]
-    elif topology_type == 'grid':
-        wires = []
-        for i in range(3):
-            for j in range(3):
-                wires.append({'position': [(i+1)*field_size/4, (j+1)*field_size/4], 'length': 0.3})
-    else:  # ring or hybrid
-        angles = np.linspace(0, 2*np.pi, 8, endpoint=False)
-        wires = [{'position': [field_size/2 + field_size/3*np.cos(a), field_size/2 + field_size/3*np.sin(a)], 'length': 0.3} for a in angles]
+    wires = create_complex_topologies(topology_type, size=int(np.sqrt(field_size)))
     
     # Generate and process field
     env_params = {'conductivity': 5.96e7}
     field = harness.generate_test_field(wires[0], wires[1], env_params, field_size)
-    corrected_field = harness.apply_quantum_correction(field)
+    corrected_field = harness.apply_quantum_correction(field, mitigate_noise=True)
     final_field = harness.apply_noise_mitigation(corrected_field)
     
     # Create field visualization
@@ -243,19 +230,8 @@ def run_test(n_clicks, topology_type, field_size, backend):
     ))
     field_fig.update_layout(title='Quantum-Corrected EM Field', xaxis_title='X Position', yaxis_title='Y Position', template='plotly_dark')
     
-    # Create metrics plot
-    fidelity = 0.85 + np.random.normal(0, 0.05)  # Simulated
-    max_field = np.max(np.abs(final_field))
-    mean_field = np.mean(np.abs(final_field))
-    results_df = pd.DataFrame([{
-        'test_id': hashlib.sha1(os.urandom(24)).hexdigest()[:8],
-        'method': 'quantum_mitigated',
-        'fidelity': fidelity,
-        'resonance_shift': np.random.normal(1.2e8, 2e7),
-        'execution_time': np.random.normal(12.5, 1.2),
-        'noise_level': np.random.uniform(0.1, 0.3),
-        'topology_type': topology_type
-    }])
+    # Run full test suite
+    results_df = run_complex_topology_tests((topology_type, field_size, backend))
     
     with server.app_context():
         for _, row in results_df.iterrows():
@@ -268,6 +244,15 @@ def run_test(n_clicks, topology_type, field_size, backend):
         alerts = alerter.check_alerts(results_df, analyzer.perform_tukey_hsd('fidelity'))
         for msg in alerts:
             alerter.send_alert(msg['message'])
+            db.session.add(Alert(
+                severity=msg['severity'],
+                message=msg['message'],
+                metric=msg['metric'],
+                threshold_value=msg['threshold'],
+                actual_value=msg['actual'],
+                test_id=results_df['test_id'].iloc[0]
+            ))
+        db.session.commit()
     
     metrics_fig = go.Figure()
     for m in ['fidelity', 'resonance_shift', 'execution_time']:
